@@ -1,0 +1,63 @@
+-
+  name: Install Docker
+  hosts: junoon_servers
+  become: yes
+
+  tasks:
+    - name: Add docker repo on OS RedHat/CentOS
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+      become: yes
+      when: ansible_distribution=='RedHat' or ansible_distribution=='CentOs'
+      
+    - name: Install Docker on OS RedHat/CentOS
+      dnf:
+        name: docker-ce
+        state: present
+      
+      when: ansible_distribution=='RedHat' or ansible_distribution=='CentOs'
+
+    - name: Install Docker on OS Amazon
+      dnf:
+        name: docker
+        state: present
+      
+      when: ansible_distribution=='Amazon'
+
+    - name: Install Docker on OS Ubuntu
+      package:
+        name: docker.io
+        state: latest
+        update_cache: true
+      
+      when: ansible_distribution=='Ubuntu'
+
+    - name: Start Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add existing user to docker group
+      user:
+        name: ansible_user_id
+        groups: docker
+        append: yes
+
+    - name: Verify that the containers are running
+      command: docker ps
+
+    - name: Update and upgrade packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Reboot the server if needed
+      reboot:
+        msg: "Rebooting the server after applying updates"
+        connect_timeout: 5
+        reboot_timeout: 600
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
